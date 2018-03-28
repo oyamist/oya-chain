@@ -1,4 +1,4 @@
-(typeof describe === 'function') && describe("Asset", function() {
+(typeof describe === 'function') && describe("cryptico", function() {
     const winston = require('winston');
     const should = require("should");
     const jsrsasign = require('jsrsasign');
