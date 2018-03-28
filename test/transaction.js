@@ -10,7 +10,7 @@
         Transaction,
     } = require("../index");
 
-    it("TESTTESTTransaction(opts) creates transaction", function() {
+    it("Transaction(opts) creates transaction", function() {
         // default constructor
         var trans = new Transaction();
         var keyPair = new SerializedKeyPair();
@@ -23,7 +23,7 @@
             });
         });
     });
-    it("TESTTESTtransactions are serializable", function() {
+    it("transactions are serializable", function() {
         var agent = new Agent();
         var sender = agent.publicKey;
         var recipient = 'Alice';
@@ -75,7 +75,7 @@
         ].sort());
 
     });
-    it("TESTTESTtwo equivalent objects generate different JSON strings", function() {
+    it("two equivalent objects generate different JSON strings", function() {
         var obj1 = {
             a: 1,
             b: 2,
@@ -99,7 +99,7 @@
         should.deepEqual(obj1, obj2);
         should(json1).not.equal(json2);
     });
-    it("TESTTESTsign(keyPair) adds signature to transaction", function() {
+    it("sign(keyPair) adds signature to transaction", function() {
         var mj = new MerkleJson();
         var agent1 = new Agent({
             rsaKeyPath: path.join(__dirname, 'test-rsaKey.json'),
@@ -152,7 +152,7 @@
         should.deepEqual(trans2, trans);
         should(trans2.verifySignature()).equal(true);
     });
-    it("TESTTESTsigned transactions can't be tampered", function() {
+    it("signed transactions can't be tampered", function() {
         var mj = new MerkleJson();
         var agent = new Agent({
             rsaKeyPath: path.join(__dirname, 'test-rsaKey.json'),

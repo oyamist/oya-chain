@@ -6,7 +6,7 @@
         Block,
     } = require("../index");
 
-    it("TESTTESTAbstractBlock(data,t) creates a block", function() {
+    it("AbstractBlock(data,t) creates a block", function() {
         var t = new Date(Date.UTC(2018,2,10));
         var blk = new AbstractBlock({
             color: 'red',
@@ -28,7 +28,7 @@
             var blk = new AbstractBlock("asdf", "baddate");
         });
     });
-    it("TESTTESThashBlock(blk) returns block hash", function() {
+    it("hashBlock(blk) returns block hash", function() {
         var t = new Date(Date.UTC(2018,2,10));
         var blk = new AbstractBlock({
             color: 'red',
@@ -42,7 +42,7 @@
             data:blk.data,
         }));
     });
-    it("TESTTESTmineBlock(difficulty) does work to find target hash", function() {
+    it("mineBlock(difficulty) does work to find target hash", function() {
         var blk = new AbstractBlock({
             color: 'red',
         });
@@ -55,12 +55,12 @@
         should(hash.substr(0,3) === '000');
         should(Date.now()-msStart).below(100);
     });
-    it("TESTTESTtarget(difficulty) returns hash target", function() {
+    it("target(difficulty) returns hash target", function() {
         should(AbstractBlock.target(0)).equal('');
         should(AbstractBlock.target(1)).equal('0');
         should(AbstractBlock.target(3)).equal('000');
     });
-    it("TESTTESTAbstractBlock can be serialized", function() {
+    it("AbstractBlock can be serialized", function() {
         var t = new Date(2018,1,2);
         var index = 123;
         var prevHash = 'thatWhichCameBefore';
@@ -79,7 +79,7 @@
         var blk2 = Block.fromJSON(json);
         should.deepEqual(blk2, blk);
     });
-    it("TESTTESTBlock can be serialized", function() {
+    it("Block can be serialized", function() {
         var t = new Date(2018,1,2);
         var index = 123;
         var prevHash = 'thatWhichCameBefore';

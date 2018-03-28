@@ -37,7 +37,7 @@
         }
         
     });
-    it("TESTTESTsign(plainText) returns message signature", function() {
+    it("sign(plainText) returns message signature", function() {
         var kp = new SerializedKeyPair({
             rsaKeyPath: path.join(__dirname, "test-rsaKey.json"),
         });
@@ -47,7 +47,7 @@
         should(sign.id).equal('bd529c51f3bd678131133af445235e0c');
         should(sign.signature).startWith('fd26228f76');
     });
-    it("TESTTESTverify(msg,signature,publicKey) verifies msg signature", function() {
+    it("verify(msg,signature,publicKey) verifies msg signature", function() {
         var kpSigner = new SerializedKeyPair({ // the signer
             rsaKeyPath: path.join(__dirname, "test-rsaKey.json"),
         });
