@@ -12,24 +12,16 @@
 
     class OyaChain{
         constructor(opts={}) {
-            this.genesis = opts.genesis || "Genesis block";
+            this.genesisBlockData = opts.genesisBlockData || "Genesis block";
             this.t = opts.t || new Date(0); // genesis blocks are same by default
             this.difficulty = opts.difficulty == null ? AbstractBlock.DIFFICULTY : opts.difficulty;
             this.account = opts.account || "wallet";
             this.agent = opts.agent || new Agent();
-            var genesisBlock = this.createGenesis(this.genesis);
-            this.chain = [genesisBlock];
+            var genesisBlock = this.createGenesisBlock(this.genesisBlockData);
+            this.chain = opts.chain || [genesisBlock];
             this.resolveConflict = opts.resolveConflict || OyaChain.resolveDiscard;
             this.UTXOs = {};
             this.consumeValue = opts.consumeValue || OyaChain.consumeCurrency;
-            var genesisTrans = new Transaction({
-                t: this.t,
-                recipient: this.agent.publicKey,
-                sender: this.agent.publicKey,
-                value: this.genesis,
-                srcAccount: this.account,
-                dstAccount: this.account,
-            });
         }
 
         static resolveDiscard(conflict) {
@@ -39,8 +31,22 @@
             conflict.forEach(blk => this.addBlock(blk.unlink()));
         }
 
-        createGenesis(genesis=this.genesis) {
-            return new AbstractBlock(genesis,this.t);
+        static createGenesisTransaction(keyPair, value, account='wallet', t = new Date()) {
+            var trans = new Transaction({
+                t,
+                recipient: keyPair.publicKey.key,
+                sender: keyPair.publicKey.key,
+                value,
+                srcAccount: null, // out of nothing...
+                dstAccount: account,
+            });
+            trans.sign(keyPair);
+
+            return trans;
+        }
+
+        createGenesisBlock(data=this.genesisBlockData) {
+            return new AbstractBlock(data,this.t);
         }
 
         getBlock(index = -1) {

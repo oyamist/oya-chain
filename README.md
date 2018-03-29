@@ -22,7 +22,7 @@ A currency blockchain (e.g., Bitcoin) has some notable requirements:
 * transactions are created and signed by public key infrastructure (PKI) agents for accountability
 
 ### Recordkeeping blockchains
-A recodkeeping blockchain is used to track and record historical events happening to one or more accounts.
+A recordkeeping blockchain is used to track and record historical events happening to one or more accounts.
 
 * record management blockchains have asset pools that grow with the number of accounts (v.s. zero-sum wallets). 
 * record management transactions do not have a zero-sum input/output balance requirement. Agents can create new accounts arbitrarily.

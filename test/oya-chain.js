@@ -15,14 +15,14 @@
         var t = new Date(Date.UTC(2018,2,10));
         var agent = new Agent();
         var bc = new OyaChain({
-            genesis: 1000, // the currency pool
+            genesisBlockData: "whatever", 
             t, // genesis block timestamp
         });
         should(bc.consumeValue).equal(OyaChain.consumeCurrency);
         should(bc.chain).instanceOf(Array);
         should(bc.chain.length).equal(1);
-        should.deepEqual(bc.chain[0], bc.createGenesis());
-        should.deepEqual(bc.chain[0], bc.createGenesis(1000));
+        should.deepEqual(bc.chain[0], bc.createGenesisBlock());
+        should.deepEqual(bc.chain[0], bc.createGenesisBlock("whatever"));
         should(bc.t).equal(t);
         should(bc.t).equal(bc.chain[0].t);
         should(bc.chain[0].t.getTime()).equal(t.getTime());
@@ -32,14 +32,14 @@
             consumeValue: OyaChain.consumeOne,
         });
         should(bc.consumeValue).equal(OyaChain.consumeOne);
-        should.deepEqual(bc.chain[0], bc.createGenesis());
-        should.deepEqual(bc.chain[0], bc.createGenesis("Genesis block"));
+        should.deepEqual(bc.chain[0], bc.createGenesisBlock());
+        should.deepEqual(bc.chain[0], bc.createGenesisBlock("Genesis block"));
         should(bc.chain[0].t.getTime()).equal(0);
     });
     it("validate() validates blockchain", function() {
         var t = new Date(Date.UTC(2018,2,10));
         var bc = new OyaChain({
-            genesis: "fluffy bunnies", // genesis block text
+            genesisBlockData: "fluffy bunnies", // genesis block text
             t, // genesis block timestamp
         });
         should(bc.validate()).equal(true);
@@ -71,14 +71,14 @@
         should(bc.validate()).equal(true);
 
         should(bc.chain.length).equal(3);
-        should.deepEqual(bc.chain[0], bc.createGenesis());
+        should.deepEqual(bc.chain[0], bc.createGenesisBlock());
         should.deepEqual(bc.chain[1], blk1);
         should.deepEqual(bc.chain[2], blk2);
     });
     it("addBlock(newBlk) adds new block", function() {
         var t = new Date(Date.UTC(2018,2,10));
         var bc = new OyaChain({
-            genesis: "fluffy bunnies", // genesis block text
+            genesisBlockData: "fluffy bunnies", // genesis block text
             t, // genesis block timestamp
         });
         should(bc.validate()).equal(true);
@@ -126,7 +126,7 @@
     });
     it("merge(blkchn) merges in longer compatible blockchain", function() {
         var opts = {
-            genesis: "G",
+            genesisBlockData: "G",
         };
         var bcA = new OyaChain(opts);
         var bcB = new OyaChain(opts);
@@ -152,7 +152,7 @@
     });
     it("merge(blkchn) merges in shorter compatible blockchain", function() {
         var opts = {
-            genesis: "G",
+            genesisBlockData: "G",
         };
         var bcA = new OyaChain(opts);
         var bcB = new OyaChain(opts);
@@ -177,7 +177,7 @@
     });
     it("merge(blkchn) resolves longer conflicting blockchain with discard", function() {
         var opts = {
-            genesis: "G",
+            genesisBlockData: "G",
         };
         var bcA = new OyaChain(opts);
         should(bcA.resolveConflict).equal(OyaChain.resolveDiscard); // discard by default
@@ -206,7 +206,7 @@
     });
     it("merge(blkchn) resolves shorter conflicting blockchain with discard", function() {
         var opts = {
-            genesis: "G",
+            genesisBlockData: "G",
             resolveConflict: OyaChain.resolveDiscard,
         };
         var bcA = new OyaChain(opts);
@@ -232,7 +232,7 @@
     });
     it("merge(blkchn) resolves longer conflicting blockchain with append", function() {
         var opts = {
-            genesis: "G",
+            genesisBlockData: "G",
             resolveConflict: OyaChain.resolveAppend,
         };
         var bcA = new OyaChain(opts);
@@ -260,7 +260,7 @@
     });
     it("merge(blkchn) resolves shorter conflicting blockchain with append", function() {
         var opts = {
-            genesis: "G",
+            genesisBlockData: "G",
             resolveConflict: OyaChain.resolveAppend,
         };
         var bcA = new OyaChain(opts);
@@ -438,5 +438,17 @@
         should.throws(() => OyaChain.consumeOne(42, "anything")); // not UTXOs
         should.throws(() => OyaChain.consumeOne([1,2,3], "anything")); // not UTXOs
         should.throws(() => OyaChain.consumeOne([], "anything")); // insufficient
+    });
+    it("TESTTESTcreateGenesisTransaction(keyPair,value,account,t) creates unbalanced transaction", function(){
+        var agent = new Agent();
+        var t = new Date(2018,2,11);
+        var account = "cash";
+        var value = 100;
+        var trans = OyaChain.createGenesisTransaction(agent.keyPair, value, account, t);
+        should(trans.verifySignature()).equal(true);
+        should(trans.sender).equal(agent.publicKey);
+        should(trans.recipient).equal(agent.publicKey);
+        should(trans.value).equal(value);
+        should(trans.t).equal(t);
     });
 })
