@@ -47,7 +47,8 @@
             if (!(trans instanceof Transaction)) {
                 throw new Error(`AbstractBlock.addTransaction() expected:Transaction actual:${trans}`);
             }
-            this.prevHash === '0' && trans.processTransaction();
+            var inputs = []; // TODO
+            this.prevHash === '0' && trans.processTransaction(inputs);
         }
 
         hashBlock(blk=this) {

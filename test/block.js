@@ -53,7 +53,7 @@
         should(blk.mineBlock(3)).equal(blk);
         should(blk.hash.substr(0,3)).equal('000');
         should(hash.substr(0,3) === '000');
-        should(Date.now()-msStart).below(100);
+        should(Date.now()-msStart).below(300); // mining usually takes between 3-300ms
     });
     it("target(difficulty) returns hash target", function() {
         should(AbstractBlock.target(0)).equal('');

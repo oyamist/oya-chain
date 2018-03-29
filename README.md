@@ -10,6 +10,15 @@ a set of personalized accounts (e.g., "wallet" or "medical history").
 Blockchain implementations can differ subtly by their intended use. A currency
 blockchain has different requirements than a recordkeeping blockchain.
 
+| Design requirement | Currency blockhain | Recordkeeping blockchain |
+| -----: | :----: | :----: |
+| Asset pool | fixed | grows with number of accounts |
+| Zero-sum transaction balance | output values -input values = 0 (except for genesis transaction) | 1 input, 1 output |
+| Transactions can be active/legacy | unspent/spent | active/legacy |
+| Miner accountability | mining fee | miners must be information stakeholders |
+| Transactions record changes to | wallets | accounts |
+| Transactions are signed by public key infrastructure (PKI) agents | yes | yes |
+
 ### Currency blockchains
 A currency blockchain (e.g., Bitcoin) has some notable requirements:
 

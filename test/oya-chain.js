@@ -14,33 +14,30 @@
     it("OyaChain() creates a blockchain", function() {
         var t = new Date(Date.UTC(2018,2,10));
         var agent = new Agent();
+        var genesisBlock = new AbstractBlock("whatever", t);
         var bc = new OyaChain({
-            genesisBlockData: "whatever", 
-            t, // genesis block timestamp
+            genesisBlock,
         });
-        should(bc.consumeValue).equal(OyaChain.consumeCurrency);
+        should(bc.gatherValue).equal(OyaChain.gatherCurrency);
         should(bc.chain).instanceOf(Array);
         should(bc.chain.length).equal(1);
-        should.deepEqual(bc.chain[0], bc.createGenesisBlock());
-        should.deepEqual(bc.chain[0], bc.createGenesisBlock("whatever"));
-        should(bc.t).equal(t);
-        should(bc.t).equal(bc.chain[0].t);
+        should.deepEqual(bc.chain[0], genesisBlock);
+        should(bc.chain[0]).not.equal(genesisBlock); // genesis block is cloned
         should(bc.chain[0].t.getTime()).equal(t.getTime());
         should.deepEqual(bc.agent, agent);
 
         var bc = new OyaChain({
-            consumeValue: OyaChain.consumeOne,
+            genesisBlock,
+            gatherValue: OyaChain.gatherOne,
         });
-        should(bc.consumeValue).equal(OyaChain.consumeOne);
-        should.deepEqual(bc.chain[0], bc.createGenesisBlock());
-        should.deepEqual(bc.chain[0], bc.createGenesisBlock("Genesis block"));
-        should(bc.chain[0].t.getTime()).equal(0);
+        should(bc.gatherValue).equal(OyaChain.gatherOne);
+        should.deepEqual(bc.chain[0], genesisBlock);
     });
     it("validate() validates blockchain", function() {
         var t = new Date(Date.UTC(2018,2,10));
+        var genesisBlock = new AbstractBlock("fluffy bunnies",t);
         var bc = new OyaChain({
-            genesisBlockData: "fluffy bunnies", // genesis block text
-            t, // genesis block timestamp
+            genesisBlock,
         });
         should(bc.validate()).equal(true);
         var trans = new Transaction();
@@ -71,14 +68,14 @@
         should(bc.validate()).equal(true);
 
         should(bc.chain.length).equal(3);
-        should.deepEqual(bc.chain[0], bc.createGenesisBlock());
+        should.deepEqual(bc.chain[0], genesisBlock);
         should.deepEqual(bc.chain[1], blk1);
         should.deepEqual(bc.chain[2], blk2);
     });
     it("addBlock(newBlk) adds new block", function() {
         var t = new Date(Date.UTC(2018,2,10));
         var bc = new OyaChain({
-            genesisBlockData: "fluffy bunnies", // genesis block text
+            genesisBlock: new AbstractBlock("G"),
             t, // genesis block timestamp
         });
         should(bc.validate()).equal(true);
@@ -126,7 +123,7 @@
     });
     it("merge(blkchn) merges in longer compatible blockchain", function() {
         var opts = {
-            genesisBlockData: "G",
+            genesisBlock: new AbstractBlock("G"),
         };
         var bcA = new OyaChain(opts);
         var bcB = new OyaChain(opts);
@@ -152,7 +149,7 @@
     });
     it("merge(blkchn) merges in shorter compatible blockchain", function() {
         var opts = {
-            genesisBlockData: "G",
+            genesisBlock: new AbstractBlock("G"),
         };
         var bcA = new OyaChain(opts);
         var bcB = new OyaChain(opts);
@@ -177,7 +174,7 @@
     });
     it("merge(blkchn) resolves longer conflicting blockchain with discard", function() {
         var opts = {
-            genesisBlockData: "G",
+            genesisBlock: new AbstractBlock("G"),
         };
         var bcA = new OyaChain(opts);
         should(bcA.resolveConflict).equal(OyaChain.resolveDiscard); // discard by default
@@ -206,7 +203,7 @@
     });
     it("merge(blkchn) resolves shorter conflicting blockchain with discard", function() {
         var opts = {
-            genesisBlockData: "G",
+            genesisBlock: new AbstractBlock("G"),
             resolveConflict: OyaChain.resolveDiscard,
         };
         var bcA = new OyaChain(opts);
@@ -232,7 +229,7 @@
     });
     it("merge(blkchn) resolves longer conflicting blockchain with append", function() {
         var opts = {
-            genesisBlockData: "G",
+            genesisBlock: new AbstractBlock("G"),
             resolveConflict: OyaChain.resolveAppend,
         };
         var bcA = new OyaChain(opts);
@@ -259,8 +256,9 @@
         should.deepEqual(conflicts.map(b=>b.data), ["A2","A3"]);
     });
     it("merge(blkchn) resolves shorter conflicting blockchain with append", function() {
+        var genesisBlock = new AbstractBlock("G");
         var opts = {
-            genesisBlockData: "G",
+            genesisBlock,
             resolveConflict: OyaChain.resolveAppend,
         };
         var bcA = new OyaChain(opts);
@@ -319,9 +317,11 @@
         should(bc.findUTXOs(recipient).length).equal(1);
     });
     it("findUTXOs(recipient, dstAccount) returns matching UTXOs", function() {
-        var bc = new OyaChain();
         var agent1 = new Agent({
             rsaKeyPath: path.join(__dirname, 'test_rsaKey.json'),
+        });
+        var bc = new OyaChain({
+            agent: agent1
         });
         var sender = agent1.publicKey;
         var agent2 = new Agent({
@@ -369,48 +369,48 @@
         var utxos = bc.findUTXOs(agent1.publicKey);
         should(utxos.length).equal(0);
     });
-    it("consumeCurrency(utxos, value) consumes UTXOs up to value", function() {
+    it("gatherCurrency(utxos, value) gathers UTXOs up to value", function() {
         var recipient = "anybody";
         var account = "a recipient account";
         var t10 = new Transaction.Output(recipient, 10, "T10", account);
         var t20 = new Transaction.Output(recipient, 20, "T20", account);
         var t5 = new Transaction.Output(recipient, 5, "T5", account);
 
-        should.deepEqual(OyaChain.consumeCurrency([t5,t20,t10], 6), {
+        should.deepEqual(OyaChain.gatherCurrency([t5,t20,t10], 6), {
             remainder: 4,
-            unconsumed: [t5,t20],
-            consumed: [t10],
+            unused: [t5,t20],
+            used: [t10],
         });
-        should.deepEqual(OyaChain.consumeCurrency([t5,t20,t10], 10), {
+        should.deepEqual(OyaChain.gatherCurrency([t5,t20,t10], 10), {
             remainder: 0,
-            unconsumed: [t5,t20],
-            consumed: [t10],
+            unused: [t5,t20],
+            used: [t10],
         });
-        should.deepEqual(OyaChain.consumeCurrency([t5,t20,t10], 11), {
+        should.deepEqual(OyaChain.gatherCurrency([t5,t20,t10], 11), {
             remainder: 19,
-            unconsumed: [t5],
-            consumed: [t10,t20],
+            unused: [t5],
+            used: [t10,t20],
         });
 
         // check arguments
-        should.throws(() => OyaChain.consumeCurrency("asdf", 1));
-        should.throws(() => OyaChain.consumeCurrency(123, 1));
-        should.throws(() => OyaChain.consumeCurrency(null, 1));
-        should.throws(() => OyaChain.consumeCurrency(undefined, 1));
-        should.throws(() => OyaChain.consumeCurrency({}, 1));
-        should.throws(() => OyaChain.consumeCurrency([1,2,3], 1));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], NaN));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], {}));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], []));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], "123"));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], null));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], undefined));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], 100));
-        should.throws(() => OyaChain.consumeCurrency([t5,t20,t10], -100));
-        should.throws(() => OyaChain.consumeCurrency([], 100));
-        should.throws(() => OyaChain.consumeCurrency([], -100));
+        should.throws(() => OyaChain.gatherCurrency("asdf", 1));
+        should.throws(() => OyaChain.gatherCurrency(123, 1));
+        should.throws(() => OyaChain.gatherCurrency(null, 1));
+        should.throws(() => OyaChain.gatherCurrency(undefined, 1));
+        should.throws(() => OyaChain.gatherCurrency({}, 1));
+        should.throws(() => OyaChain.gatherCurrency([1,2,3], 1));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], NaN));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], {}));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], []));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], "123"));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], null));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], undefined));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], 100));
+        should.throws(() => OyaChain.gatherCurrency([t5,t20,t10], -100));
+        should.throws(() => OyaChain.gatherCurrency([], 100));
+        should.throws(() => OyaChain.gatherCurrency([], -100));
     });
-    it("consumeOne(utxos, value) consumes one UTXO", function() {
+    it("gatherOne(utxos, value) gathers one UTXO", function() {
         var recipient = "anybody";
         var account = "a recipient account";
         var value = "any value";
@@ -420,32 +420,32 @@
 
         var expected = {
             remainder: null,
-            unconsumed: [t2,t3],
-            consumed: [t1],
+            unused: [t2,t3],
+            used: [t1],
         }
-        should.deepEqual(OyaChain.consumeOne([t1,t2,t3], "asdf"), expected);
-        should.deepEqual(OyaChain.consumeOne([t1,t2,t3], 123), expected);
-        should.deepEqual(OyaChain.consumeOne([t1,t2,t3], null), expected);
-        should.deepEqual(OyaChain.consumeOne([t1,t2,t3], {}), expected);
-        should.deepEqual(OyaChain.consumeOne([t1,t2,t3], []), expected);
-        should.deepEqual(OyaChain.consumeOne([t1,t2,t3], undefined), expected);
+        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], "asdf"), expected);
+        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], 123), expected);
+        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], null), expected);
+        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], {}), expected);
+        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], []), expected);
+        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], undefined), expected);
 
         // check arguments
-        should.throws(() => OyaChain.consumeOne(null, "anything")); // not UTXOs
-        should.throws(() => OyaChain.consumeOne(undefined, "anything")); // not UTXOs
-        should.throws(() => OyaChain.consumeOne({}, "anything")); // not UTXOs
-        should.throws(() => OyaChain.consumeOne("oops", "anything")); // not UTXOs
-        should.throws(() => OyaChain.consumeOne(42, "anything")); // not UTXOs
-        should.throws(() => OyaChain.consumeOne([1,2,3], "anything")); // not UTXOs
-        should.throws(() => OyaChain.consumeOne([], "anything")); // insufficient
+        should.throws(() => OyaChain.gatherOne(null, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherOne(undefined, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherOne({}, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherOne("oops", "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherOne(42, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherOne([1,2,3], "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherOne([], "anything")); // insufficient
     });
-    it("TESTTESTcreateGenesisTransaction(keyPair,value,account,t) creates unbalanced transaction", function(){
+    it("TESTTESTcreateGenesisTransaction(agent,value,account,t) creates unbalanced transaction", function(){
         var agent = new Agent();
         var t = new Date(2018,2,11);
         var account = "cash";
         var value = 100;
-        var trans = OyaChain.createGenesisTransaction(agent.keyPair, value, account, t);
-        should(trans.verifySignature()).equal(true);
+        var trans = OyaChain.createGenesisTransaction(agent, value, account, t);
+        should(trans.verifySignature()).equal(true); // it is signed
         should(trans.sender).equal(agent.publicKey);
         should(trans.recipient).equal(agent.publicKey);
         should(trans.value).equal(value);

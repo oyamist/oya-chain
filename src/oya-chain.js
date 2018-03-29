@@ -12,16 +12,20 @@
 
     class OyaChain{
         constructor(opts={}) {
-            this.genesisBlockData = opts.genesisBlockData || "Genesis block";
-            this.t = opts.t || new Date(0); // genesis blocks are same by default
             this.difficulty = opts.difficulty == null ? AbstractBlock.DIFFICULTY : opts.difficulty;
-            this.account = opts.account || "wallet";
             this.agent = opts.agent || new Agent();
-            var genesisBlock = this.createGenesisBlock(this.genesisBlockData);
+            if (opts.genesisBlock) {
+                var genesisBlock = Block.fromJSON(opts.genesisBlock); // make a copy
+            } else {
+                var genesisBlock = OyaChain.createGenesisBlock(this.agent, opts.genesisValue);
+            }
+            if (!(genesisBlock instanceof AbstractBlock)) {
+                throw new Error("Invalid genesis block");
+            }
             this.chain = opts.chain || [genesisBlock];
             this.resolveConflict = opts.resolveConflict || OyaChain.resolveDiscard;
+            this.gatherValue = opts.gatherValue || OyaChain.gatherCurrency;
             this.UTXOs = {};
-            this.consumeValue = opts.consumeValue || OyaChain.consumeCurrency;
         }
 
         static resolveDiscard(conflict) {
@@ -31,22 +35,25 @@
             conflict.forEach(blk => this.addBlock(blk.unlink()));
         }
 
-        static createGenesisTransaction(keyPair, value, account='wallet', t = new Date()) {
+        static createGenesisTransaction(agent, value, account='wallet', t = new Date()) {
             var trans = new Transaction({
                 t,
-                recipient: keyPair.publicKey.key,
-                sender: keyPair.publicKey.key,
+                recipient: agent.publicKey,
+                sender: agent.publicKey,
                 value,
                 srcAccount: null, // out of nothing...
                 dstAccount: account,
             });
-            trans.sign(keyPair);
+            trans.sign(agent.keyPair);
 
             return trans;
         }
 
-        createGenesisBlock(data=this.genesisBlockData) {
-            return new AbstractBlock(data,this.t);
+        static createGenesisBlock(agent, value, t = new Date(0)) {
+            var gBlock = new Block([],t);
+            var gTrans = OyaChain.createGenesisTransaction(agent, value, 'genesis', t);
+            gBlock.addTransaction(gTrans);
+            return gBlock;
         }
 
         getBlock(index = -1) {
@@ -57,11 +64,13 @@
 
         postTransaction(trans) {
             trans.verifySignature();
-            trans.processTransaction();
+            // TODO
+            var inputs = [];
+            trans.processTransaction(inputs);
             trans.outputs.forEach(utxo => (this.UTXOs[utxo.id] = utxo));
         }
 
-        static consumeCurrency(utxos, value) {
+        static gatherCurrency(utxos, value) {
             if (!(utxos instanceof Array) || !(utxos[0] instanceof Transaction.Output)) {
                 throw new Error("Expected array of Transaction.Output");
             }
@@ -74,20 +83,20 @@
             if (value < 0) {
                 throw new Error(`Value cannot be negative:${value}`);
             }
-            var consumed = [];
-            var unconsumed = utxos;
+            var used = [];
+            var unused = utxos;
             var remainder = value;
-            while(unconsumed.length) {
-                var utxo = unconsumed.pop();
+            while(unused.length) {
+                var utxo = unused.pop();
                 if (utxo.value < remainder) {
                     remainder -= utxo.value;
-                    consumed.push(utxo);
+                    used.push(utxo);
                 } else {
                     remainder = utxo.value - remainder;
-                    consumed.push(utxo);
+                    used.push(utxo);
                     return {
-                        consumed,
-                        unconsumed,
+                        used,
+                        unused,
                         remainder,
                     };
                 }
@@ -95,7 +104,7 @@
             throw new Error("Insufficient funds");
         }
 
-        static consumeOne(utxos, value) {
+        static gatherOne(utxos, value) {
             if (!(utxos instanceof Array) || !(utxos[0] instanceof Transaction.Output)) {
                 throw new Error("Expected array of Transaction.Output");
             }
@@ -103,8 +112,8 @@
                 throw new Error("No transactions available for consumption");
             }
             return {
-                consumed: [utxos[0]], // utxos consumed
-                unconsumed: utxos.slice(1),
+                used: [utxos[0]], // utxos used
+                unused: utxos.slice(1),
                 remainder: null, 
             };
         }

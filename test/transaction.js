@@ -16,6 +16,8 @@
         var keyPair = new SerializedKeyPair();
         should(trans.recipient).equal(keyPair.publicKey.id);
         should(trans.sender).equal(keyPair.publicKey.id);
+        should(trans.inputs).instanceOf(Array);
+        should(trans.outputs).instanceOf(Array);
 
         should.throws(() => {
             new Transaction({
@@ -31,6 +33,10 @@
         var dstAccount = 'A002';
         var srcAccount = 'A001';
         var t = new Date(2018,1,12);
+        var inputs = [
+            new Transaction.Input("I123",srcAccount),
+        ];
+
         var trans = new Transaction({
             sender,
             recipient,
@@ -43,6 +49,8 @@
         var trans2 = new Transaction(json);
         should.deepEqual(trans2, trans);
         should.deepEqual(json, {
+            inputs: [],
+            outputs: [],
             sender: agent.publicKey,
             recipient: 'Alice',
             t: new Date(2018,1,12).toJSON(),
@@ -52,11 +60,20 @@
         });
 
         // unsigned transactions are not serializable
-        should.throws(() => trans.processTransaction());
+        should.throws(() => trans.processTransaction(inputs));
 
         // processed transactions are serializable
         trans.sign(agent.keyPair);
-        trans.processTransaction();
+        trans.processTransaction(inputs);
+        should.deepEqual(trans.inputs, inputs);
+        should.deepEqual(trans.outputs, [
+            new Transaction.Output(
+                trans.recipient,
+                trans.value,
+                trans.id,
+                trans.dstAccount
+            ),
+        ]);
         var json = JSON.parse(JSON.stringify(trans));
         var trans2 = new Transaction(json);
         should.deepEqual(trans2, trans);
@@ -66,6 +83,8 @@
         should.deepEqual(Object.keys(json).sort(), [
             "id", 
             "sender", 
+            "inputs",
+            "outputs",
             "recipient", 
             "t", 
             "value", 
@@ -111,12 +130,14 @@
         var sender = agent1.publicKey;
         var recipient = "Bob";
         var value = "a fine day";
+        var srcAccount = "savings";
         var dstAccount = "checking";
         var trans = new Transaction({
             sender,
             recipient,
             value,
             t,
+            srcAccount,
             dstAccount,
         });
 
@@ -125,6 +146,7 @@
             recipient,
             t,
             value,
+            srcAccount,
             dstAccount,
         });
         should.deepEqual(trans.signedData(), signedData);
@@ -136,14 +158,10 @@
 
         // signed data did not change
         should.deepEqual(trans.signedData(), signedData);
-        should(trans.id).equal(mj.hash({
-            sender: trans.sender,
-            recipient: trans.recipient,
-            value: trans.value,
-            signature: trans.signature,
-            t,
-        }));
-        should(trans.signature.length).equal(256);
+
+        // the transaction id is a hash of the signed data
+        should(trans.id).equal(mj.hash(signedData));
+        should(trans.signature.length).above(254);
         should(trans.verifySignature()).equal(true);
 
         // serialized transaction is still signed
