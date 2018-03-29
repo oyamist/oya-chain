@@ -1,4 +1,4 @@
-# oya-chain
+ oya-chain
 A blockchain is a shared ledger for recording transactions. 
 Blockchains are secured by public key infrastructure (PKI).
 Historically,
@@ -16,7 +16,7 @@ blockchain has different requirements than a recordkeeping blockchain.
 | -----: | :----: | :----: |
 | Transactions record changes to | accounts (i.e., "wallet") | accounts (e.g., "medical history") |
 | Account value | balance = credits - debits | cumulative account history |
-| Asset pool | sum of all account balances never changes | grows with number of accounts |
+| Asset pool | account balances sum is fixed | grows with number of accounts |
 | Zero-sum transaction balance | output values -input values = 0 | 1 input, 1 output |
 | Minimum transaction value | yes | no |
 | Transactions status | unspent/spent | active/legacy |
