@@ -16,9 +16,10 @@ blockchain has different requirements than a recordkeeping blockchain.
 | -----: | :----: | :----: |
 | Transactions record changes to | accounts (i.e., "wallet") | accounts (e.g., "medical history") |
 | Account value | balance = credits - debits | cumulative account history |
-| Asset pool | account balances sum is fixed | grows with number of accounts |
-| Zero-sum transaction balance | output values -input values = 0 | 1 input, 1 output |
-| Minimum transaction value | yes | no |
+| Asset pool size | sum of account balances is fixed | grows with number of accounts |
+| Minimum transaction value (MTV) | yes | no |
+| Number of accounts | MTV limited | unlimited |
+| Zero-sum transaction balance | output values - input values = 0 | 1 input, 1 output |
 | Transactions status | unspent/spent | active/legacy |
 | Miner accountability | mining fee | miners must be information stakeholders |
 | Transactions are PKI agents | yes | yes |
