@@ -14,11 +14,21 @@
     }
 
     class Output {
-        constructor(recipient, value, transId, account) {
-            this.id = transId;
+        constructor(recipient, account, value, transId) {
+            this.id = mj.hash([ recipient, account, transId, value, ]);
+            if (recipient == null) {
+                throw new Error(`Recipient is required`);
+            }
             this.recipient = recipient;
             this.value = value;
+            if (account == null) {
+                throw new Error(`Account is required`);
+            }
             this.account = account;
+            if (transId == null) {
+                throw new Error(`Transaction id is required`);
+            }
+            this.transId = transId;
         }
     }
 
@@ -55,9 +65,9 @@
                 }
                 return new Transaction.Output(
                     output.recipient,
+                    output.account,
                     output.value,
-                    output.id,
-                    output.account
+                    output.transId
                 );
             });
             this.inputs = (opts.inputs || []).map(input => {
@@ -93,9 +103,9 @@
 
             var txo = new Transaction.Output(
                 this.recipient, 
+                this.dstAccount,
                 this.value, 
-                this.id, 
-                this.dstAccount
+                this.id
             );
             this.outputs.push(txo);
             return true;

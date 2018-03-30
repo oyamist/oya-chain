@@ -45,13 +45,6 @@
             return "".padStart(difficulty, '0');
         }
 
-        addTransaction(trans) {
-            if (!(trans instanceof Transaction)) {
-                throw new Error(`AbstractBlock.addTransaction() expected:Transaction actual:${trans}`);
-            }
-            this.transactions[trans.id] = trans;
-        }
-
         hashBlock(blk=this) {
             var json = JSON.stringify({
                 data: blk.data,
@@ -99,6 +92,12 @@
             return this.data;
         }
 
+        addTransaction(trans) {
+            if (!(trans instanceof Transaction)) {
+                throw new Error(`AbstractBlock.addTransaction() expected:Transaction actual:${trans}`);
+            }
+            this.transactions[trans.id] = trans;
+        }
 
         static get DIFFICULTY() { return DIFFICULTY; } 
         static get AbstractBlock() { return AbstractBlock; }

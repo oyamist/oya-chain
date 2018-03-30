@@ -1,4 +1,5 @@
 (function(exports) {
+    const winston = require('winston');
     const {
         MerkleJson,
     } = require("merkle-json");
@@ -12,27 +13,37 @@
 
     class OyaChain{
         constructor(opts={}) {
+            this.UTXOs = {};
             this.difficulty = opts.difficulty == null ? AbstractBlock.DIFFICULTY : opts.difficulty;
             this.agent = opts.agent || new Agent();
             if (opts.genesisBlock) {
-                var genesisBlock = Block.fromJSON(opts.genesisBlock); // make a copy
+                this.genesisBlock = Block.fromJSON(opts.genesisBlock); // make a copy
             } else {
-                var genesisBlock = OyaChain.createGenesisBlock(this.agent, opts.genesisValue);
+                var {
+                    genesisBlock,
+                    genesisTrans,
+                } = OyaChain.createGenesisBlock(this.agent, opts.genesisValue);
+                this.genesisBlock = genesisBlock;
+                var genesisUTXO = genesisTrans.outputs[0];
+                this.UTXOs[genesisUTXO.id] = genesisUTXO;
             }
-            if (!(genesisBlock instanceof AbstractBlock)) {
+            if (!(this.genesisBlock instanceof AbstractBlock)) {
                 throw new Error("Invalid genesis block");
             }
-            this.UTXOs = {};
-            var transactions = genesisBlock.transactions;
+            var transactions = this.genesisBlock.transactions;
             transactions && Object.keys(transactions).forEach(txid => {
                 var tx = transactions[txid];
                 tx && tx.outputs.forEach(txo => {
                     this.UTXOs[txo.id] = txo;
                 });
             });
-            this.chain = opts.chain || [genesisBlock];
+            this.chain = opts.chain || [this.genesisBlock];
             this.resolveConflict = opts.resolveConflict || OyaChain.resolveDiscard;
-            this.gatherValue = opts.gatherValue || OyaChain.gatherCurrency;
+            this.gatherValue = opts.gatherValue || (
+                typeof opts.genesisValue === 'number'
+                ? OyaChain.gatherCurrency // Currency blockchain
+                : OyaChain.gatherRecord // Recordkeeping blockchain
+            );
         }
 
         static resolveDiscard(conflict) {
@@ -43,6 +54,8 @@
         }
 
         static createGenesisTransaction(agent, value, account='wallet', t = new Date()) {
+            winston.info(`OyaChain.createGenesisTransaction() `,
+                `agent:${agent.name} value:${value} account:${account} t:${t.toISOString()}`);
             var recipient = agent.publicKey;
             var sender = recipient;
             var trans = new Transaction({
@@ -59,9 +72,9 @@
             trans.outputs = [
                 new Transaction.Output(
                     recipient,
-                    value,
-                    trans.id, 
                     account,
+                    value,
+                    trans.id
                 ),
             ];
 
@@ -69,11 +82,24 @@
         }
 
         static createGenesisBlock(agent, value="Genesis", t = new Date(0)) {
-            var gBlock = new Block([],t);
+            var genesisBlock = new Block({},t);
             var account = 'genesis';
-            var gTrans = OyaChain.createGenesisTransaction(agent, value, account, t);
-            gBlock.addTransaction(gTrans);
-            return gBlock;
+            var genesisTrans = OyaChain.createGenesisTransaction(agent, value, account, t);
+            genesisBlock.addTransaction(genesisTrans);
+            winston.info(`OyaChain.createGenesisBlock() `,
+                `txid:${genesisTrans.id} value:${value} account:${account}`);
+            return {
+                genesisBlock,
+                genesisTrans,
+            }
+        }
+
+        accountValue(publicKey, account) {
+            var utxos = this.findUTXOs(publicKey, account);
+            var acc = this.gatherValue === this.gatherCurrency ? 0 : [];
+            return utxos.reduce((acc, utxo) => {
+                return acc;
+            }, acc);
         }
 
         getBlock(index = -1) {
@@ -96,14 +122,37 @@
 
         postTransaction(trans) {
             trans.verifySignature();
-            // TODO
-            var inputs = [];
-            trans.bindInputs(inputs);
-            trans.outputs.forEach(utxo => (this.UTXOs[utxo.id] = utxo));
+
+            var utxos = this.findUTXOs(trans.sender, trans.account);
+            var gather = this.gatherValue(utxos, trans.value, trans.sender, trans.srcAccount);
+            trans.inputs = gather.used;
+            trans.outputs = [
+                new Transaction.Output(
+                    trans.recipient,
+                    trans.dstAccount,
+                    trans.value,
+                    trans.id
+                ),
+            ];
+            if (gather.remainder) {
+                trans.outputs.push( new Transaction.Output(
+                    trans.recipient,
+                    trans.dstAccount,
+                    trans.value,
+                    trans.id
+                ));
+            }
+            trans.outputs.forEach(utxo => {
+                this.UTXOs[utxo.id] = utxo;
+            });
+
         }
 
-        static gatherCurrency(utxos, value) {
-            if (!(utxos instanceof Array) || !(utxos[0] instanceof Transaction.Output)) {
+        static gatherCurrency(utxos, value, sender, account) {
+            if (!(utxos instanceof Array)) {
+                throw new Error("Expected UTXO array");
+            }
+            if (utxos.length && !(utxos[0] instanceof Transaction.Output)) {
                 throw new Error("Expected array of Transaction.Output");
             }
             if (typeof value !== 'number' || isNaN(value)) {
@@ -118,8 +167,10 @@
             var used = [];
             var unused = utxos;
             var remainder = value;
+            var sum = 0;
             while(unused.length) {
                 var utxo = unused.pop();
+                sum += utxo.value;
                 if (utxo.value < remainder) {
                     remainder -= utxo.value;
                     used.push(utxo);
@@ -133,15 +184,16 @@
                     };
                 }
             }
-            throw new Error("Insufficient funds");
+            throw new Error(`Insufficient funds for value:${value} `+
+                `sender:${sender.substr(0,10)}... account:${account} utxos:${utxos.length} available:@${sum}`);
         }
 
-        static gatherOne(utxos, value) {
+        static gatherRecord(utxos, value, sender, account) {
             if (!(utxos instanceof Array) || !(utxos[0] instanceof Transaction.Output)) {
                 throw new Error("Expected array of Transaction.Output");
             }
             if (utxos.length < 1) {
-                throw new Error("No transactions available for consumption");
+                throw new Error(`No transactions available for consumption for sender:${sender} account:${account}`);
             }
             return {
                 used: [utxos[0]], // utxos used

@@ -6,6 +6,7 @@
         constructor(opts={}) {
             this.keyPair = opts.keyPair || new SerializedKeyPair(opts);
             this.blockchain = opts.blockchain;
+            this.name = opts.name || `${this.publicKey.substr(0,10)}...`;
             this.UTXOs = [];
         }
 

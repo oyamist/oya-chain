@@ -25,7 +25,7 @@
             });
         });
     });
-    it("transactions are serializable", function() {
+    it("TESTTESTtransactions are serializable", function() {
         var agent = new Agent();
         var sender = agent.publicKey;
         var recipient = 'Alice';
@@ -69,9 +69,9 @@
         should.deepEqual(trans.outputs, [
             new Transaction.Output(
                 trans.recipient,
+                trans.dstAccount,
                 trans.value,
-                trans.id,
-                trans.dstAccount
+                trans.id
             ),
         ]);
         var json = JSON.parse(JSON.stringify(trans));

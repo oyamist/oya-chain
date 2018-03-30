@@ -11,14 +11,14 @@
         Transaction,
     } = require("../index");
 
-    it("OyaChain() creates a blockchain", function() {
+    it("TESTTESTOyaChain() creates a blockchain", function() {
         var t = new Date(Date.UTC(2018,2,10));
         var agent = new Agent();
         var genesisBlock = new AbstractBlock("whatever", t);
         var bc = new OyaChain({
             genesisBlock,
         });
-        should(bc.gatherValue).equal(OyaChain.gatherCurrency);
+        should(bc.gatherValue).equal(OyaChain.gatherRecord);
         should(bc.chain).instanceOf(Array);
         should(bc.chain.length).equal(1);
         should.deepEqual(bc.chain[0], genesisBlock);
@@ -28,9 +28,9 @@
 
         var bc = new OyaChain({
             genesisBlock,
-            gatherValue: OyaChain.gatherOne,
+            gatherValue: OyaChain.gatherRecord,
         });
-        should(bc.gatherValue).equal(OyaChain.gatherOne);
+        should(bc.gatherValue).equal(OyaChain.gatherRecord);
         should.deepEqual(bc.chain[0], genesisBlock);
     });
     it("validate() validates blockchain", function() {
@@ -284,25 +284,31 @@
         should.deepEqual(bcB.chain.map(b=>b.data), ["G","AB1","B2","B3"]);
         should.deepEqual(conflicts.map(b=>b.data), ["B2","B3"]);
     });
-    it("postTransaction(trans) adds a transaction to the blockchain", function() {
-        var bc = new OyaChain();
+    it("TESTTESTpostTransaction(trans) adds a transaction to the blockchain", function() {
         var agent1 = new Agent({
             rsaKeyPath: path.join(__dirname, 'test_rsaKey.json'),
+            genesisValue: 100,
         });
         var sender = agent1.publicKey;
         var agent2 = new Agent({
             rsaKeyPath: path.join(__dirname, 'test_rsaKey2.json'),
         });
         var recipient = agent2.publicKey;
-        var srcAccount = "A0001";
+        var bc = new OyaChain({
+            agent: agent1,
+            genesisValue: 100,
+        });
+        var utxos = bc.findUTXOs(sender, 'genesis');
+        should(utxos.length).equal(1);
+        var srcAccount = "genesis";
+        var dstAccount = "wallet2";
         var t = new Date(2018,2,12);
-        var value = {
-            color: 'red',
-        };
+        var value = 42;
         var trans1 = new Transaction({
             sender,
             recipient,
             srcAccount,
+            dstAccount,
             t,
             value,
         });
@@ -316,23 +322,24 @@
         bc.postTransaction(trans1);
         should(bc.findUTXOs(recipient).length).equal(1);
     });
-    it("findUTXOs(recipient, dstAccount) returns matching UTXOs", function() {
+    it("TESTTESTfindUTXOs(recipient, dstAccount) returns matching UTXOs", function() {
         var agent1 = new Agent({
             rsaKeyPath: path.join(__dirname, 'test_rsaKey.json'),
         });
         var bc = new OyaChain({
-            agent: agent1
+            agent: agent1,
+            genesisValue: 1000,
         });
         var sender = agent1.publicKey;
         var agent2 = new Agent({
             rsaKeyPath: path.join(__dirname, 'test_rsaKey2.json'),
         });
-        var srcAccount = "A0001";
+        var srcAccount = "genesis";
         var t = new Date(2018,2,12);
         var trans1 = new Transaction({
             sender,
             recipient: agent2.publicKey,
-            srcAccount: "A0001",
+            srcAccount,
             dstAccount: "B0001",
             t,
             value: 123,
@@ -340,7 +347,7 @@
         var trans2 = new Transaction({
             sender,
             recipient: agent2.publicKey,
-            srcAccount: "A0002",
+            srcAccount,
             dstAccount: "B0002",
             t,
             value: 222,
@@ -350,16 +357,16 @@
         trans2.sign(agent1.keyPair);
         bc.postTransaction(trans2);
 
-        // all srcAccounts for agent2
+        // all accounts for agent2
         var utxos = bc.findUTXOs(agent2.publicKey);
         should(utxos.length).equal(2);
-        should(utxos[0]).equal(trans1.outputs[0]);
-        should(utxos[1]).equal(trans2.outputs[0]);
+        should.deepEqual((utxos[0]), trans1.outputs[0]);
+        should.deepEqual((utxos[1]), trans2.outputs[0]);
 
-        // a specific dstAccount for agent2
+        // a specific account for agent2
         var utxos = bc.findUTXOs(agent2.publicKey, "B0001");
         should(utxos.length).equal(1);
-        should(utxos[0]).equal(trans1.outputs[0]);
+        should.deepEqual(utxos[0], trans1.outputs[0]);
 
         // a non-existent srcAccount for agent2
         var utxos = bc.findUTXOs(agent2.publicKey, "some other acccount");
@@ -371,15 +378,15 @@
         should(utxos[0]).properties({
             account: 'genesis',
             recipient: agent1.publicKey,
-            value: 'Genesis',
+            value: 1000,
         });
     });
-    it("gatherCurrency(utxos, value) gathers UTXOs up to value", function() {
+    it("TESTTESTgatherCurrency(utxos, value) gathers UTXOs up to value", function() {
         var recipient = "anybody";
         var account = "a recipient account";
-        var t10 = new Transaction.Output(recipient, 10, "T10", account);
-        var t20 = new Transaction.Output(recipient, 20, "T20", account);
-        var t5 = new Transaction.Output(recipient, 5, "T5", account);
+        var t10 = new Transaction.Output(recipient, account, 10, "T10");
+        var t20 = new Transaction.Output(recipient, account, 20, "T20");
+        var t5 = new Transaction.Output(recipient, account, 5, "T5");
 
         should.deepEqual(OyaChain.gatherCurrency([t5,t20,t10], 6), {
             remainder: 4,
@@ -415,7 +422,7 @@
         should.throws(() => OyaChain.gatherCurrency([], 100));
         should.throws(() => OyaChain.gatherCurrency([], -100));
     });
-    it("gatherOne(utxos, value) gathers one UTXO", function() {
+    it("gatherRecord(utxos, value) gathers one UTXO", function() {
         var recipient = "anybody";
         var account = "a recipient account";
         var value = "any value";
@@ -428,21 +435,21 @@
             unused: [t2,t3],
             used: [t1],
         }
-        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], "asdf"), expected);
-        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], 123), expected);
-        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], null), expected);
-        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], {}), expected);
-        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], []), expected);
-        should.deepEqual(OyaChain.gatherOne([t1,t2,t3], undefined), expected);
+        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], "asdf"), expected);
+        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], 123), expected);
+        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], null), expected);
+        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], {}), expected);
+        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], []), expected);
+        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], undefined), expected);
 
         // check arguments
-        should.throws(() => OyaChain.gatherOne(null, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherOne(undefined, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherOne({}, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherOne("oops", "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherOne(42, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherOne([1,2,3], "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherOne([], "anything")); // insufficient
+        should.throws(() => OyaChain.gatherRecord(null, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherRecord(undefined, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherRecord({}, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherRecord("oops", "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherRecord(42, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherRecord([1,2,3], "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherRecord([], "anything")); // insufficient
     });
     it("TESTTESTcreateGenesisTransaction(agent,value,account,t) creates unbalanced transaction", function(){
         var agent = new Agent();
@@ -457,17 +464,20 @@
         should(trans.t).equal(t);
     });
     it("TESTTESTgenesis block transactions", function() {
+        var genesisValue = 1000;
         var oc = new OyaChain({
-            genesisValue: "blueberries",
+            genesisValue,
         });
         var agent = oc.agent;
         var utxos = oc.findUTXOs(agent.publicKey, 'genesis');
         should(utxos.length).equal(1);
-        should(utxos[0].value).equal('blueberries');
+        should(utxos[0].value).equal(genesisValue);
         should(utxos[0].account).equal('genesis');
         should(utxos[0].recipient).equal(agent.publicKey);
         should(utxos[0].id).String();
-        var tx = oc.getTransaction(utxos[0].id);
+        var tx = oc.getTransaction(utxos[0].transId);
         should(tx).instanceOf(Transaction);
+        should(tx.dstAccount).equal('genesis');
+        should(tx.value).equal(genesisValue);
     });
 })
