@@ -6,6 +6,8 @@
     const mj = new MerkleJson();
     const Transaction = require('./transaction');
     const DIFFICULTY = 2; // hashBlock computes in << 100ms on Pixelbook
+    const path = require('path');
+    const fs = require('fs');
 
     class AbstractBlock {
         constructor(data, t=new Date(), index=0, prevHash="0", nonce) {
@@ -47,8 +49,7 @@
             if (!(trans instanceof Transaction)) {
                 throw new Error(`AbstractBlock.addTransaction() expected:Transaction actual:${trans}`);
             }
-            var inputs = []; // TODO
-            this.prevHash === '0' && trans.processTransaction(inputs);
+            this.transactions[trans.id] = trans;
         }
 
         hashBlock(blk=this) {
@@ -80,17 +81,24 @@
     }
 
     class Block extends AbstractBlock {
-        constructor(transactions=[], t, index, prevHash, nonce) {
+        constructor(transactions={}, t, index, prevHash, nonce) {
             super(transactions, t, index, prevHash, nonce);
             this.type = 'Block';
-            if (!(transactions instanceof Array)) {
-                throw new Error("Expected array of transaction as block data");
+            if (transactions == null || typeof transactions !== 'object') {
+                throw new Error("Expected transaction map as block data");
             }
+            Object.keys(transactions).forEach(txid => {
+                var tx = transactions[txid];
+                if (!(tx instanceof Transaction)) {
+                    transactions[txid] = new Transaction(tx);
+                }
+            });
         }
 
         get transactions() {
             return this.data;
         }
+
 
         static get DIFFICULTY() { return DIFFICULTY; } 
         static get AbstractBlock() { return AbstractBlock; }

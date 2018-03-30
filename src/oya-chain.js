@@ -22,10 +22,17 @@
             if (!(genesisBlock instanceof AbstractBlock)) {
                 throw new Error("Invalid genesis block");
             }
+            this.UTXOs = {};
+            var transactions = genesisBlock.transactions;
+            transactions && Object.keys(transactions).forEach(txid => {
+                var tx = transactions[txid];
+                tx && tx.outputs.forEach(txo => {
+                    this.UTXOs[txo.id] = txo;
+                });
+            });
             this.chain = opts.chain || [genesisBlock];
             this.resolveConflict = opts.resolveConflict || OyaChain.resolveDiscard;
             this.gatherValue = opts.gatherValue || OyaChain.gatherCurrency;
-            this.UTXOs = {};
         }
 
         static resolveDiscard(conflict) {
@@ -36,22 +43,35 @@
         }
 
         static createGenesisTransaction(agent, value, account='wallet', t = new Date()) {
+            var recipient = agent.publicKey;
+            var sender = recipient;
             var trans = new Transaction({
                 t,
-                recipient: agent.publicKey,
-                sender: agent.publicKey,
+                recipient,
+                sender,
                 value,
                 srcAccount: null, // out of nothing...
                 dstAccount: account,
             });
             trans.sign(agent.keyPair);
 
+            trans.inputs = [];
+            trans.outputs = [
+                new Transaction.Output(
+                    recipient,
+                    value,
+                    trans.id, 
+                    account,
+                ),
+            ];
+
             return trans;
         }
 
-        static createGenesisBlock(agent, value, t = new Date(0)) {
+        static createGenesisBlock(agent, value="Genesis", t = new Date(0)) {
             var gBlock = new Block([],t);
-            var gTrans = OyaChain.createGenesisTransaction(agent, value, 'genesis', t);
+            var account = 'genesis';
+            var gTrans = OyaChain.createGenesisTransaction(agent, value, account, t);
             gBlock.addTransaction(gTrans);
             return gBlock;
         }
@@ -62,11 +82,23 @@
                 : this.chain[this.chain.length + index];
         }
 
+        getTransaction(id) {
+            // TODO: Make it faster
+            for (var i=0; i < this.chain.length; i++) {
+                var blk = this.chain[i];
+                var tx = blk.transactions[id];
+                if (tx) {
+                    return tx;
+                }
+            }
+            return null;
+        }
+
         postTransaction(trans) {
             trans.verifySignature();
             // TODO
             var inputs = [];
-            trans.processTransaction(inputs);
+            trans.bindInputs(inputs);
             trans.outputs.forEach(utxo => (this.UTXOs[utxo.id] = utxo));
         }
 

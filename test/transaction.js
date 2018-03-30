@@ -60,11 +60,11 @@
         });
 
         // unsigned transactions are not serializable
-        should.throws(() => trans.processTransaction(inputs));
+        should.throws(() => trans.bindInputs(inputs));
 
         // processed transactions are serializable
         trans.sign(agent.keyPair);
-        trans.processTransaction(inputs);
+        trans.bindInputs(inputs);
         should.deepEqual(trans.inputs, inputs);
         should.deepEqual(trans.outputs, [
             new Transaction.Output(

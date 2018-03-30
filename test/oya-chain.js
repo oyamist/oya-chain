@@ -367,7 +367,12 @@
 
         // all accounts for agent1
         var utxos = bc.findUTXOs(agent1.publicKey);
-        should(utxos.length).equal(0);
+        should(utxos.length).equal(1);
+        should(utxos[0]).properties({
+            account: 'genesis',
+            recipient: agent1.publicKey,
+            value: 'Genesis',
+        });
     });
     it("gatherCurrency(utxos, value) gathers UTXOs up to value", function() {
         var recipient = "anybody";
@@ -450,5 +455,19 @@
         should(trans.recipient).equal(agent.publicKey);
         should(trans.value).equal(value);
         should(trans.t).equal(t);
+    });
+    it("TESTTESTgenesis block transactions", function() {
+        var oc = new OyaChain({
+            genesisValue: "blueberries",
+        });
+        var agent = oc.agent;
+        var utxos = oc.findUTXOs(agent.publicKey, 'genesis');
+        should(utxos.length).equal(1);
+        should(utxos[0].value).equal('blueberries');
+        should(utxos[0].account).equal('genesis');
+        should(utxos[0].recipient).equal(agent.publicKey);
+        should(utxos[0].id).String();
+        var tx = oc.getTransaction(utxos[0].id);
+        should(tx).instanceOf(Transaction);
     });
 })

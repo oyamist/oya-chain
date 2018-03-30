@@ -4,6 +4,7 @@
     const {
         AbstractBlock,
         Block,
+        Transaction,
     } = require("../index");
 
     it("AbstractBlock(data,t) creates a block", function() {
@@ -83,17 +84,41 @@
         var t = new Date(2018,1,2);
         var index = 123;
         var prevHash = 'thatWhichCameBefore';
+        var sender = "Alice";
+        var receiver = "Bob";
+        var dstAccount = "A0001";
+        var t = new Date(2018, 1, 20);
+        var t10 = new Transaction({
+            id: "t10",
+            sender,
+            receiver,
+            value: 10,
+            dstAccount, 
+            t,
+        });
+        var t21 = new Transaction({
+            id: "t21",
+            sender,
+            receiver,
+            value: 21,
+            dstAccount, 
+            t,
+        });
+        var transactions = {
+            [t10.id]: t10,
+            [t21.id]: t21,
+        }
 
         // unmined block
-        var blk = new Block([1,2,3], t, index, prevHash);
-        should.deepEqual(blk.transactions, [1,2,3]);
+        var blk = new Block(transactions, t, index, prevHash);
+        should.deepEqual(blk.transactions, transactions);
         var json = JSON.parse(JSON.stringify(blk));
         should(json.type).equal('Block');
         var blk2 = Block.fromJSON(json);
         should.deepEqual(blk2, blk);
 
         // mined block
-        var blk = new Block([1,2,3], t, index, prevHash);
+        var blk = new Block(transactions, t, index, prevHash);
         blk.mineBlock();
         var json = JSON.parse(JSON.stringify(blk));
         var blk2 = AbstractBlock.fromJSON(json); // block factory knows about "type" property

@@ -82,7 +82,7 @@
             return true;
         }
 
-        processTransaction(inputs) {
+        bindInputs(inputs) {
             this.verifySignature();
                 
             if (!(inputs instanceof Array)) {
@@ -91,15 +91,13 @@
             this.inputs = inputs.map(input => 
                 new Transaction.Input(input.id, input.account));
 
-            // TODO: update blockchain
-
-            var utxo = new Transaction.Output(
+            var txo = new Transaction.Output(
                 this.recipient, 
                 this.value, 
                 this.id, 
                 this.dstAccount
             );
-            this.outputs.push(utxo);
+            this.outputs.push(txo);
             return true;
         }
 
