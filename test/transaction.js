@@ -33,10 +33,6 @@
         var dstAccount = 'A002';
         var srcAccount = 'A001';
         var t = new Date(2018,1,12);
-        var inputs = [
-            new Transaction.Input("I123",srcAccount),
-        ];
-
         var trans = new Transaction({
             sender,
             recipient,
@@ -45,12 +41,27 @@
             srcAccount,
             dstAccount,
         });
+        trans.sign(agent.keyPair);
+
+        var input1 = new Transaction.Input("I123",srcAccount);
+        var inputs = [input1];
+        var inputs = [];
+        var output1 = new Transaction.Output(
+            trans.recipient,
+            trans.dstAccount,
+            trans.value,
+            trans.id
+        );
+        var outputs = [output1];
+
+        // simulate setting of inputs/outputs when transaction is posted
+        trans.inputs = inputs;
+        trans.outputs = outputs;
+
         var json = JSON.parse(JSON.stringify(trans));
         var trans2 = new Transaction(json);
         should.deepEqual(trans2, trans);
-        should.deepEqual(json, {
-            inputs: [],
-            outputs: [],
+        should(json).properties({
             sender: agent.publicKey,
             recipient: 'Alice',
             t: new Date(2018,1,12).toJSON(),
@@ -58,22 +69,22 @@
             srcAccount,
             dstAccount,
         });
-
-        // unsigned transactions are not serializable
-        should.throws(() => trans.bindInputs(inputs));
-
-        // processed transactions are serializable
-        trans.sign(agent.keyPair);
-        trans.bindInputs(inputs);
-        should.deepEqual(trans.inputs, inputs);
-        should.deepEqual(trans.outputs, [
-            new Transaction.Output(
-                trans.recipient,
-                trans.dstAccount,
-                trans.value,
-                trans.id
-            ),
+        should(trans2.signature).equal(trans.signature);
+        should.deepEqual(Object.keys(json).sort(), [
+            'dstAccount',
+            'id',
+            'inputs',
+            'outputs',
+            'recipient',
+            'sender',
+            'signature',
+            'srcAccount',
+            't',
+            'value',
         ]);
+
+        should.deepEqual(trans2.inputs, inputs);
+        should.deepEqual(trans2.outputs, outputs);
         var json = JSON.parse(JSON.stringify(trans));
         var trans2 = new Transaction(json);
         should.deepEqual(trans2, trans);

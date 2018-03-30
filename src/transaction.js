@@ -92,25 +92,6 @@
             return true;
         }
 
-        bindInputs(inputs) {
-            this.verifySignature();
-                
-            if (!(inputs instanceof Array)) {
-                throw new Error("Expected array of Transaction.Input");
-            }
-            this.inputs = inputs.map(input => 
-                new Transaction.Input(input.id, input.account));
-
-            var txo = new Transaction.Output(
-                this.recipient, 
-                this.dstAccount,
-                this.value, 
-                this.id
-            );
-            this.outputs.push(txo);
-            return true;
-        }
-
         signedData() {
             return mj.stringify({
                 sender: this.sender,
