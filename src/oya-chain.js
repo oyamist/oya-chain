@@ -136,14 +136,17 @@
             ];
             if (gather.remainder) {
                 trans.outputs.push( new Transaction.Output(
-                    trans.recipient,
-                    trans.dstAccount,
-                    trans.value,
+                    trans.sender,
+                    trans.srcAccount,
+                    gather.remainder,
                     trans.id
                 ));
             }
             trans.outputs.forEach(utxo => {
                 this.UTXOs[utxo.id] = utxo;
+            });
+            trans.inputs.forEach(utxo => {
+                delete this.UTXOs[utxo.id];
             });
 
         }

@@ -321,6 +321,9 @@
         should(bc.findUTXOs(recipient).length).equal(0);
         bc.postTransaction(trans1);
         should(bc.findUTXOs(recipient).length).equal(1);
+        var senderUTXOs = bc.findUTXOs(sender);
+        should(senderUTXOs.length).equal(1);
+        should(senderUTXOs[0].value).equal(58); // 100 - 42
     });
     it("TESTTESTfindUTXOs(recipient, dstAccount) returns matching UTXOs", function() {
         var agent1 = new Agent({
@@ -362,11 +365,17 @@
         should(utxos.length).equal(2);
         should.deepEqual((utxos[0]), trans1.outputs[0]);
         should.deepEqual((utxos[1]), trans2.outputs[0]);
+        should(utxos[0].value + utxos[1].value).equal(123+222);
 
         // a specific account for agent2
         var utxos = bc.findUTXOs(agent2.publicKey, "B0001");
         should(utxos.length).equal(1);
         should.deepEqual(utxos[0], trans1.outputs[0]);
+
+        // a specific account for agent2
+        var utxos = bc.findUTXOs(agent2.publicKey, "B0002");
+        should(utxos.length).equal(1);
+        should(utxos[0].value).equal(222);
 
         // a non-existent srcAccount for agent2
         var utxos = bc.findUTXOs(agent2.publicKey, "some other acccount");
@@ -374,11 +383,11 @@
 
         // all accounts for agent1
         var utxos = bc.findUTXOs(agent1.publicKey);
-        should(utxos.length).equal(1);
+        should(utxos.length).equal(1); // 1:genesis + 2:trans - 2:remainder
         should(utxos[0]).properties({
             account: 'genesis',
             recipient: agent1.publicKey,
-            value: 1000,
+            value: 1000-123-222,
         });
     });
     it("TESTTESTgatherCurrency(utxos, value) gathers UTXOs up to value", function() {
@@ -422,7 +431,7 @@
         should.throws(() => OyaChain.gatherCurrency([], 100));
         should.throws(() => OyaChain.gatherCurrency([], -100));
     });
-    it("gatherRecord(utxos, value) gathers one UTXO", function() {
+    it("gatherRecord(utxos, value) gathers utxos sufficient for value", function() {
         var recipient = "anybody";
         var account = "a recipient account";
         var value = "any value";
@@ -463,7 +472,7 @@
         should(trans.value).equal(value);
         should(trans.t).equal(t);
     });
-    it("TESTTESTgenesis block transactions", function() {
+    it("TESTTESTOyaChain() creates genesis block transactions", function() {
         var genesisValue = 1000;
         var oc = new OyaChain({
             genesisValue,
