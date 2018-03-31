@@ -104,14 +104,11 @@
             dstAccount, 
             t,
         });
-        var transactions = {
-            [t10.id]: t10,
-            [t21.id]: t21,
-        }
+        var transactions = [ t10, t21 ];
 
         // unmined block
         var blk = new Block(transactions, t, index, prevHash);
-        should.deepEqual(blk.transactions, transactions);
+        should.deepEqual(blk.data, transactions);
         var json = JSON.parse(JSON.stringify(blk));
         should(json.type).equal('Block');
         var blk2 = Block.fromJSON(json);

@@ -74,18 +74,24 @@
     }
 
     class Block extends AbstractBlock {
-        constructor(transactions={}, t, index, prevHash, nonce) {
-            super(transactions, t, index, prevHash, nonce);
+        constructor(txList=[], t, index, prevHash, nonce) {
+            super(txList, t, index, prevHash, nonce);
             this.type = 'Block';
-            if (transactions == null || typeof transactions !== 'object') {
-                throw new Error("Expected transaction map as block data");
+            if (!(txList instanceof Array)) {
+                throw new Error("Expected array of transactions");
             }
-            Object.keys(transactions).forEach(txid => {
-                var tx = transactions[txid];
-                if (!(tx instanceof Transaction)) {
-                    transactions[txid] = new Transaction(tx);
-                }
+            Object.defineProperty(this, "transactions", {
+                enumarable: false,
+                writable: true,
+                value: {}
             });
+            for (var i=0; i<txList.length; i++) {
+                var tx = txList[i];
+                if (!(tx instanceof Transaction)) {
+                    tx = new Transaction(tx);
+                    txList[i] = this.transactions[tx.id] = tx;
+                }
+            }
         }
 
         get transactions() {

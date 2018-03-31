@@ -82,7 +82,7 @@
         }
 
         static createGenesisBlock(agent, value="Genesis", t = new Date(0)) {
-            var genesisBlock = new Block({},t);
+            var genesisBlock = new Block([],t);
             var account = 'genesis';
             var genesisTrans = OyaChain.createGenesisTransaction(agent, value, account, t);
             genesisBlock.addTransaction(genesisTrans);
