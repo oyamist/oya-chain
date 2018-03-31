@@ -18,7 +18,7 @@
         var bc = new OyaChain({
             genesisBlock,
         });
-        should(bc.gatherValue).equal(OyaChain.gatherRecord);
+        should(bc.gatherValue).equal(OyaChain.gatherHistoricalRecord);
         should(bc.chain).instanceOf(Array);
         should(bc.chain.length).equal(1);
         should.deepEqual(bc.chain[0], genesisBlock);
@@ -28,9 +28,9 @@
 
         var bc = new OyaChain({
             genesisBlock,
-            gatherValue: OyaChain.gatherRecord,
+            gatherValue: OyaChain.gatherHistoricalRecord,
         });
-        should(bc.gatherValue).equal(OyaChain.gatherRecord);
+        should(bc.gatherValue).equal(OyaChain.gatherHistoricalRecord);
         should.deepEqual(bc.chain[0], genesisBlock);
     });
     it("validate() validates blockchain", function() {
@@ -399,16 +399,19 @@
 
         should.deepEqual(OyaChain.gatherCurrency([t5,t20,t10], 6), {
             remainder: 4,
+            value: 6,
             unused: [t5,t20],
             used: [t10],
         });
         should.deepEqual(OyaChain.gatherCurrency([t5,t20,t10], 10), {
             remainder: 0,
+            value: 10,
             unused: [t5,t20],
             used: [t10],
         });
         should.deepEqual(OyaChain.gatherCurrency([t5,t20,t10], 11), {
             remainder: 19,
+            value: 11,
             unused: [t5],
             used: [t10,t20],
         });
@@ -431,7 +434,7 @@
         should.throws(() => OyaChain.gatherCurrency([], 100));
         should.throws(() => OyaChain.gatherCurrency([], -100));
     });
-    it("gatherRecord(utxos, value) gathers utxos sufficient for value", function() {
+    it("gatherHistoricalRecord(utxos, value) gathers utxos sufficient for value", function() {
         var recipient = "anybody";
         var account = "a recipient account";
         var value = "any value";
@@ -444,21 +447,21 @@
             unused: [t2,t3],
             used: [t1],
         }
-        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], "asdf"), expected);
-        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], 123), expected);
-        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], null), expected);
-        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], {}), expected);
-        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], []), expected);
-        should.deepEqual(OyaChain.gatherRecord([t1,t2,t3], undefined), expected);
+        should.deepEqual(OyaChain.gatherHistoricalRecord([t1,t2,t3], "asdf"), expected);
+        should.deepEqual(OyaChain.gatherHistoricalRecord([t1,t2,t3], 123), expected);
+        should.deepEqual(OyaChain.gatherHistoricalRecord([t1,t2,t3], null), expected);
+        should.deepEqual(OyaChain.gatherHistoricalRecord([t1,t2,t3], {}), expected);
+        should.deepEqual(OyaChain.gatherHistoricalRecord([t1,t2,t3], []), expected);
+        should.deepEqual(OyaChain.gatherHistoricalRecord([t1,t2,t3], undefined), expected);
 
         // check arguments
-        should.throws(() => OyaChain.gatherRecord(null, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherRecord(undefined, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherRecord({}, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherRecord("oops", "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherRecord(42, "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherRecord([1,2,3], "anything")); // not UTXOs
-        should.throws(() => OyaChain.gatherRecord([], "anything")); // insufficient
+        should.throws(() => OyaChain.gatherHistoricalRecord(null, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherHistoricalRecord(undefined, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherHistoricalRecord({}, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherHistoricalRecord("oops", "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherHistoricalRecord(42, "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherHistoricalRecord([1,2,3], "anything")); // not UTXOs
+        should.throws(() => OyaChain.gatherHistoricalRecord([], "anything")); // insufficient
     });
     it("TESTTESTcreateGenesisTransaction(agent,value,account,t) creates unbalanced transaction", function(){
         var agent = new Agent();

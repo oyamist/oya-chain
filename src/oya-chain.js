@@ -42,7 +42,7 @@
             this.gatherValue = opts.gatherValue || (
                 typeof opts.genesisValue === 'number'
                 ? OyaChain.gatherCurrency // Currency blockchain
-                : OyaChain.gatherRecord // Recordkeeping blockchain
+                : OyaChain.gatherHistoricalRecord // Recordkeeping blockchain
             );
         }
 
@@ -124,13 +124,46 @@
             trans.verifySignature();
 
             var utxos = this.findUTXOs(trans.sender, trans.account);
+            // IMPORTANT
+            // Transactions define the transformation of inputs to outputs.
+            // In this regard, the transaction value is itself treated as an input.
+            // The gatherValue() method defines blockchain semantics, since
+            // it alone is responsible for defining the transformation of 
+            // transaction inputs to transaction outputs.
+            // 
+            // Currency blockchains gather input values into a split where
+            // the primary value is passed on while the remainder is held
+            // back for the sender. In this case the gathered value is
+            // equal to the transaction value. Currency blockchains should
+            // use gatherCurrency.
+            //
+            // Recordkeeping blockchains treat input values as prior state
+            // that is amended by the transaction value taken as a delta.
+            // In this case, the gathered value is the composition of the
+            // input value with the transaction value delta. For example,
+            // consider the logging of a vaccination in an ongoing
+            // medical history record. The medical treatment is represented
+            // as a transaction that describes the treatment (i.e., the "value")
+            // and applied to the medical history (i.e., account) of 
+            // the treated individual (i.e., agent). The transaction output is
+            // the updated historical medical record in its entirety. 
+            // A consequence of carrying forward the entire historical record with each update
+            // is that blockchain storage requirements grow with the square of the
+            // number of changes to a record.
+            // An alternate implementation can prioritize space minimization
+            // over performance by only gathering current state vs. entire history.
+            // For the vaccination example, this alternate information would only pass forward
+            // current vaccination state (vs. entire vaccination history).
+            // Users can choose the desired implementation by selecting one
+            // of: gatherHistoricalRecord, or gatherCurrentRecord.
+
             var gather = this.gatherValue(utxos, trans.value, trans.sender, trans.srcAccount);
             trans.inputs = gather.used;
             trans.outputs = [
                 new Transaction.Output(
                     trans.recipient,
                     trans.dstAccount,
-                    trans.value,
+                    gather.value, // IMPORTANT: gathered value may differ from transaction value
                     trans.id
                 ),
             ];
@@ -183,6 +216,7 @@
                     return {
                         used,
                         unused,
+                        value: sum - remainder,
                         remainder,
                     };
                 }
@@ -191,7 +225,7 @@
                 `sender:${sender.substr(0,10)}... account:${account} utxos:${utxos.length} available:@${sum}`);
         }
 
-        static gatherRecord(utxos, value, sender, account) {
+        static gatherHistoricalRecord(utxos, value, sender, account) {
             if (!(utxos instanceof Array) || !(utxos[0] instanceof Transaction.Output)) {
                 throw new Error("Expected array of Transaction.Output");
             }
