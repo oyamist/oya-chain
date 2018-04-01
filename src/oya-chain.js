@@ -42,7 +42,7 @@
             this.gatherValue = opts.gatherValue || (
                 typeof opts.genesisValue === 'number'
                 ? OyaChain.gatherCurrency // Currency blockchain
-                : OyaChain.gatherHistoricalRecord // Recordkeeping blockchain
+                : OyaChain.gatherRecord // Recordkeeping blockchain
             );
         }
 
@@ -154,8 +154,7 @@
             // over performance by only gathering current state vs. entire history.
             // For the vaccination example, this alternate information would only pass forward
             // current vaccination state (vs. entire vaccination history).
-            // Users can choose the desired implementation by selecting one
-            // of: gatherHistoricalRecord, or gatherCurrentRecord.
+            // Either design can use gatherRecord as a basis for implementation.
 
             var gather = this.gatherValue(utxos, trans.value, trans.sender, trans.srcAccount);
             trans.inputs = gather.used;
@@ -225,7 +224,7 @@
                 `sender:${sender.substr(0,10)}... account:${account} utxos:${utxos.length} available:@${sum}`);
         }
 
-        static gatherHistoricalRecord(utxos, value, sender, account) {
+        static gatherRecord(utxos, value, sender, account) {
             if (!(utxos instanceof Array) || !(utxos[0] instanceof Transaction.Output)) {
                 throw new Error("Expected array of Transaction.Output");
             }
